@@ -21,6 +21,9 @@
 # SOFTWARE.
 
 
+import json
+import os
+
 from urllib.parse import urlparse
 
 from web3 import IPCProvider, HTTPProvider
@@ -28,10 +31,13 @@ from web3 import IPCProvider, HTTPProvider
 from ethereumetl.providers.ipc import BatchIPCProvider
 from ethereumetl.providers.rpc import BatchHTTPProvider
 
+import warnings
+warnings.filterwarnings('ignore')
+
 DEFAULT_TIMEOUT = 60
 
 
-def get_provider_from_uri(uri_string, timeout=DEFAULT_TIMEOUT, batch=False):
+def get_provider_from_uri(uri_string, timeout=DEFAULT_TIMEOUT, batch=False, config_file='config.json'):
     uri = urlparse(uri_string)
     if uri.scheme == 'file':
         if batch:
@@ -39,7 +45,11 @@ def get_provider_from_uri(uri_string, timeout=DEFAULT_TIMEOUT, batch=False):
         else:
             return IPCProvider(uri.path, timeout=timeout)
     elif uri.scheme == 'http' or uri.scheme == 'https':
-        request_kwargs = {'timeout': timeout}
+        request_kwargs = dict()
+        if os.path.isfile(config_file):
+            with open(config_file) as f:
+                request_kwargs = json.loads(f.read())
+        request_kwargs['timeout'] = timeout
         if batch:
             return BatchHTTPProvider(uri_string, request_kwargs=request_kwargs)
         else:
